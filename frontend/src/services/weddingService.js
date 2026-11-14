@@ -43,3 +43,4 @@ export const weddingService = {
 };
 
 export default weddingService;
+

@@ -3,12 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import api from "../api/axios";
 import weddingService from "../services/weddingService";
+import taskService from "../services/taskService";
 import {
   Heart,
   LogOut,
   Sparkles,
   Calendar,
   CheckSquare,
+  Square,
   Users,
   DollarSign,
   Clock,
@@ -21,9 +23,10 @@ import {
   LayoutDashboard,
   Store,
   Settings,
-  MapPin,
   Edit3,
   PlusCircle,
+  ArrowRight,
+  Flame,
 } from "lucide-react";
 
 // Helper to calculate time remaining until wedding
@@ -71,25 +74,50 @@ export default function Dashboard() {
   const [wedding, setWedding] = useState(null);
   const [loadingWedding, setLoadingWedding] = useState(true);
 
+  // Real task statistics state from MongoDB Atlas
+  const [taskStats, setTaskStats] = useState({
+    totalTasks: 0,
+    completedTasks: 0,
+    pendingTasks: 0,
+    inProgressTasks: 0,
+    completionPercentage: 0,
+  });
+  const [recentTasks, setRecentTasks] = useState([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+
   // Live Backend health verification
   const [backendHealth, setBackendHealth] = useState(null);
   const [checkingHealth, setCheckingHealth] = useState(false);
 
-  // Fetch wedding profile and backend health
+  // Fetch wedding profile, task stats, and backend health
   useEffect(() => {
     let isMounted = true;
 
     const loadData = async () => {
       setLoadingWedding(true);
+      setLoadingTasks(true);
       try {
-        const data = await weddingService.getMyWedding();
-        if (isMounted && data?.wedding) {
-          setWedding(data.wedding);
+        const [weddingData, tasksData] = await Promise.allSettled([
+          weddingService.getMyWedding(),
+          taskService.getTasks(),
+        ]);
+
+        if (isMounted) {
+          if (weddingData.status === "fulfilled" && weddingData.value?.wedding) {
+            setWedding(weddingData.value.wedding);
+          }
+          if (tasksData.status === "fulfilled" && tasksData.value) {
+            if (tasksData.value.stats) setTaskStats(tasksData.value.stats);
+            if (tasksData.value.tasks) setRecentTasks(tasksData.value.tasks.slice(0, 4));
+          }
         }
       } catch (err) {
-        console.error("Failed to load wedding details:", err);
+        console.error("Failed to load dashboard data:", err);
       } finally {
-        if (isMounted) setLoadingWedding(false);
+        if (isMounted) {
+          setLoadingWedding(false);
+          setLoadingTasks(false);
+        }
       }
     };
 
@@ -135,10 +163,26 @@ export default function Dashboard() {
     navigate("/login", { replace: true });
   };
 
+  // Quick toggle task completion right from dashboard
+  const handleToggleTask = async (task) => {
+    const newStatus = task.status === "Completed" ? "Pending" : "Completed";
+    try {
+      setRecentTasks((prev) =>
+        prev.map((t) => (t._id === task._id ? { ...t, status: newStatus } : t))
+      );
+      await taskService.updateTask(task._id, { status: newStatus });
+      // Refresh stats
+      const freshData = await taskService.getTasks();
+      if (freshData?.stats) setTaskStats(freshData.stats);
+    } catch (err) {
+      console.error("Failed to toggle task:", err);
+    }
+  };
+
   const navItems = [
     { id: "overview", label: "Dashboard Overview", icon: LayoutDashboard, path: "/dashboard", isPlaceholder: false },
     { id: "profile", label: "Wedding Profile", icon: Heart, path: "/wedding-profile", isPlaceholder: false },
-    { id: "checklist", label: "Checklist & Tasks", icon: CheckSquare, path: null, isPlaceholder: true },
+    { id: "checklist", label: "Checklist & Tasks", icon: CheckSquare, path: "/checklist", isPlaceholder: false },
     { id: "budget", label: "Budget Planner", icon: DollarSign, path: null, isPlaceholder: true },
     { id: "guests", label: "Guest List & RSVPs", icon: Users, path: null, isPlaceholder: true },
     { id: "timeline", label: "Day-of Timeline", icon: Clock, path: null, isPlaceholder: true },
@@ -328,6 +372,14 @@ export default function Dashboard() {
               <span>{wedding ? "Edit Profile" : "Set Up Profile"}</span>
             </Link>
 
+            <Link
+              to="/checklist"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-2xs transition-all"
+            >
+              <CheckSquare className="w-3.5 h-3.5" />
+              <span>Checklist</span>
+            </Link>
+
             {/* Quick Logout Button */}
             <button
               onClick={handleLogout}
@@ -341,7 +393,7 @@ export default function Dashboard() {
 
         {/* Dashboard Body */}
         <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-6 sm:space-y-8">
-          {/* 1. Welcome Hero Banner with Couple Names */}
+          {/* 1. Welcome Hero Banner */}
           <div className="relative overflow-hidden bg-gradient-to-r from-rose-600 via-rose-500 to-amber-600 rounded-3xl p-6 sm:p-8 text-white shadow-lg shadow-rose-950/5">
             <div className="relative z-10 max-w-3xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-semibold tracking-wider uppercase mb-3">
@@ -395,7 +447,7 @@ export default function Dashboard() {
             <div className="absolute right-20 top-0 -translate-y-12 w-48 h-48 bg-amber-400/20 rounded-full blur-xl pointer-events-none" />
           </div>
 
-          {/* 2. Key Values Grid: Real Countdown, Budget, Guests, Venue */}
+          {/* 2. Key Values Grid: Countdown, Budget, Guests, Tasks */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
             {/* A. Live Real Countdown to Wedding Day */}
             <div className="bg-white rounded-2xl p-5 border border-rose-100 shadow-xs flex flex-col justify-between">
@@ -534,113 +586,172 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* D. Wedding Venue & Location */}
+            {/* D. REAL Task Progress Statistics Card */}
             <div className="bg-white rounded-2xl p-5 border border-rose-100 shadow-xs flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <MapPin className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <CheckSquare className="w-5 h-5" />
                   </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    Celebration Venue
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-800 border border-purple-200">
+                    Live Progress
                   </span>
                 </div>
                 <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                  Location & Venue
+                  Task Completion
                 </h3>
-                <div className="text-lg font-serif font-bold text-slate-900 line-clamp-2 mb-2">
-                  {wedding?.venue || "Venue not specified yet"}
+                <div className="text-3xl font-serif font-bold text-slate-900 mb-2">
+                  {taskStats.completedTasks}{" "}
+                  <span className="text-base font-sans font-normal text-slate-500">
+                    / {taskStats.totalTasks} Done
+                  </span>
                 </div>
-                <p className="text-xs text-slate-500">
-                  {wedding?.description
-                    ? wedding.description
-                    : "Add your wedding vision or venue notes in your profile."}
-                </p>
+                <div className="space-y-1.5 text-xs text-slate-600">
+                  <div className="flex justify-between">
+                    <span>Overall Progress</span>
+                    <span className="font-semibold text-purple-700">
+                      {taskStats.completionPercentage}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-purple-500 to-rose-500 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${taskStats.completionPercentage}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[11px] text-slate-500 pt-0.5">
+                    <span>Pending: {taskStats.pendingTasks}</span>
+                    <span>In Progress: {taskStats.inProgressTasks}</span>
+                  </div>
+                </div>
               </div>
               <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
-                <span>Wedding destination</span>
-                <Link to="/wedding-profile" className="text-rose-600 hover:underline">
-                  Edit
+                <span>Live Checklist</span>
+                <Link to="/checklist" className="text-rose-600 hover:underline font-semibold">
+                  Open Checklist &rarr;
                 </Link>
               </div>
             </div>
           </div>
 
-          {/* 3. Detailed Planning Section: Wedding Profile Overview & Session Security */}
+          {/* 3. Detailed Planning Section: Wedding Checklist Preview & Session Security */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Master Wedding Overview Card */}
+            {/* Real Wedding Checklist Preview */}
             <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <Heart className="w-5 h-5 text-rose-600" />
+                  <CheckSquare className="w-5 h-5 text-rose-600" />
                   <h3 className="font-semibold text-slate-900 text-sm">
-                    Wedding Profile Summary
+                    Wedding Checklist Tasks
                   </h3>
+                  <span className="text-xs font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                    {taskStats.completedTasks} of {taskStats.totalTasks} Completed
+                  </span>
                 </div>
                 <Link
-                  to="/wedding-profile"
+                  to="/checklist"
                   className="text-xs font-semibold text-rose-600 hover:underline flex items-center gap-1"
                 >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Update Details</span>
+                  <span>View All Tasks</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
 
-              {loadingWedding ? (
+              {loadingTasks ? (
                 <div className="py-6 text-center text-slate-400 text-xs">
-                  Loading profile summary...
+                  Loading wedding checklist...
                 </div>
-              ) : wedding ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-slate-400 block mb-0.5">Bride</span>
-                    <span className="font-semibold text-slate-900 text-sm">{wedding.brideName}</span>
+              ) : recentTasks.length === 0 ? (
+                <div className="p-6 bg-rose-50/40 rounded-2xl border border-rose-100 text-center">
+                  <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-2">
+                    <CheckSquare className="w-5 h-5" />
                   </div>
-                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-slate-400 block mb-0.5">Groom</span>
-                    <span className="font-semibold text-slate-900 text-sm">{wedding.groomName}</span>
-                  </div>
-                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-slate-400 block mb-0.5">Wedding Date</span>
-                    <span className="font-semibold text-slate-900 text-sm">
-                      {formatWeddingDate(wedding.weddingDate)}
-                    </span>
-                  </div>
-                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-slate-400 block mb-0.5">Venue</span>
-                    <span className="font-semibold text-slate-900 text-sm">{wedding.venue}</span>
-                  </div>
-                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-slate-400 block mb-0.5">Estimated Guests</span>
-                    <span className="font-semibold text-slate-900 text-sm">
-                      {wedding.estimatedGuestCount} Guests
-                    </span>
-                  </div>
-                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-slate-400 block mb-0.5">Total Budget</span>
-                    <span className="font-semibold text-slate-900 text-sm">
-                      ${Number(wedding.totalBudget).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 bg-rose-50/50 rounded-2xl border border-rose-100 text-center">
-                  <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
-                    <Heart className="w-6 h-6" />
-                  </div>
-                  <h4 className="font-serif font-bold text-slate-900 text-base mb-1">
-                    No Wedding Profile Found
+                  <h4 className="font-serif font-bold text-slate-900 text-sm mb-1">
+                    No Checklist Tasks Added Yet
                   </h4>
-                  <p className="text-xs text-slate-600 max-w-md mx-auto mb-4">
-                    Create your wedding profile to personalize your dashboard, start your countdown, and set your wedding budget targets.
+                  <p className="text-xs text-slate-600 max-w-sm mx-auto mb-3">
+                    Start tracking your wedding preparations with our 10 recommended milestones.
                   </p>
                   <Link
-                    to="/wedding-profile"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 shadow-sm transition-all"
+                    to="/checklist"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 shadow-xs"
                   >
-                    <PlusCircle className="w-4 h-4" />
-                    <span>Create Wedding Profile</span>
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>Open Checklist Module</span>
                   </Link>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {recentTasks.map((t) => {
+                    const isCompleted = t.status === "Completed";
+                    return (
+                      <div
+                        key={t._id}
+                        className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+                          isCompleted
+                            ? "bg-emerald-50/30 border-emerald-200/80"
+                            : "bg-slate-50/70 border-slate-200/80 hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <button
+                            onClick={() => handleToggleTask(t)}
+                            className={`cursor-pointer ${
+                              isCompleted
+                                ? "text-emerald-600"
+                                : "text-slate-300 hover:text-rose-500"
+                            }`}
+                            title={isCompleted ? "Mark Pending" : "Mark Completed"}
+                          >
+                            {isCompleted ? (
+                              <CheckSquare className="w-5 h-5 fill-emerald-100" />
+                            ) : (
+                              <Square className="w-5 h-5" />
+                            )}
+                          </button>
+                          <div className="min-w-0">
+                            <p
+                              className={`text-xs sm:text-sm font-semibold truncate ${
+                                isCompleted ? "line-through text-slate-400 font-normal" : "text-slate-800"
+                              }`}
+                            >
+                              {t.title}
+                            </p>
+                            <span className="text-[10px] text-slate-400">
+                              {t.category || "General"} &bull; {t.priority} Priority
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {t.priority === "High" && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
+                              <Flame className="w-2.5 h-2.5" /> High
+                            </span>
+                          )}
+                          <span
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                              isCompleted
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-slate-100 text-slate-600 border-slate-200"
+                            }`}
+                          >
+                            {t.status}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div className="pt-2 text-right">
+                    <Link
+                      to="/checklist"
+                      className="text-xs font-semibold text-rose-600 hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>Manage All {taskStats.totalTasks} Tasks</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>

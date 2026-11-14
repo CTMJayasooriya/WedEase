@@ -6,6 +6,7 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import WeddingProfile from "./pages/WeddingProfile";
+import Checklist from "./pages/Checklist";
 
 export default function App() {
   return (
@@ -47,6 +48,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <WeddingProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/checklist"
+            element={
+              <ProtectedRoute>
+                <Checklist />
               </ProtectedRoute>
             }
           />

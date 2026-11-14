@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import weddingRoutes from "./routes/weddingRoutes.js";
+import taskRoutes from "./routes/taskRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
 
 dotenv.config();
@@ -16,6 +17,7 @@ app.use(express.json());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/weddings", weddingRoutes);
+app.use("/api/tasks", taskRoutes);
 app.use("/api/health", healthRoutes);
 
 // Test API

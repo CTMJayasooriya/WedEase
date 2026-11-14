@@ -14,3 +14,4 @@ router.get("/my-wedding", protect, getMyWedding);
 router.put("/my-wedding", protect, updateMyWedding);
 
 export default router;
+
