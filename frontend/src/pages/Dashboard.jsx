@@ -4,6 +4,7 @@ import { useAuth } from "../context/useAuth";
 import api from "../api/axios";
 import weddingService from "../services/weddingService";
 import taskService from "../services/taskService";
+import budgetService from "../services/budgetService";
 import {
   Heart,
   LogOut,
@@ -85,11 +86,22 @@ export default function Dashboard() {
   const [recentTasks, setRecentTasks] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
 
+  // Real budget summary state from MongoDB Atlas
+  const [budgetSummary, setBudgetSummary] = useState({
+    weddingBudget: 0,
+    estimatedTotal: 0,
+    actualTotal: 0,
+    remainingBudget: 0,
+    budgetUsagePercentage: 0,
+    isOverBudget: false,
+    overBudgetAmount: 0,
+  });
+
   // Live Backend health verification
   const [backendHealth, setBackendHealth] = useState(null);
   const [checkingHealth, setCheckingHealth] = useState(false);
 
-  // Fetch wedding profile, task stats, and backend health
+  // Fetch wedding profile, task stats, budget summary, and backend health
   useEffect(() => {
     let isMounted = true;
 
@@ -97,9 +109,10 @@ export default function Dashboard() {
       setLoadingWedding(true);
       setLoadingTasks(true);
       try {
-        const [weddingData, tasksData] = await Promise.allSettled([
+        const [weddingData, tasksData, budgetData] = await Promise.allSettled([
           weddingService.getMyWedding(),
           taskService.getTasks(),
+          budgetService.getExpenses(),
         ]);
 
         if (isMounted) {
@@ -109,6 +122,9 @@ export default function Dashboard() {
           if (tasksData.status === "fulfilled" && tasksData.value) {
             if (tasksData.value.stats) setTaskStats(tasksData.value.stats);
             if (tasksData.value.tasks) setRecentTasks(tasksData.value.tasks.slice(0, 4));
+          }
+          if (budgetData.status === "fulfilled" && budgetData.value?.summary) {
+            setBudgetSummary(budgetData.value.summary);
           }
         }
       } catch (err) {
@@ -183,7 +199,7 @@ export default function Dashboard() {
     { id: "overview", label: "Dashboard Overview", icon: LayoutDashboard, path: "/dashboard", isPlaceholder: false },
     { id: "profile", label: "Wedding Profile", icon: Heart, path: "/wedding-profile", isPlaceholder: false },
     { id: "checklist", label: "Checklist & Tasks", icon: CheckSquare, path: "/checklist", isPlaceholder: false },
-    { id: "budget", label: "Budget Planner", icon: DollarSign, path: null, isPlaceholder: true },
+    { id: "budget", label: "Budget Planner", icon: DollarSign, path: "/budget", isPlaceholder: false },
     { id: "guests", label: "Guest List & RSVPs", icon: Users, path: null, isPlaceholder: true },
     { id: "timeline", label: "Day-of Timeline", icon: Clock, path: null, isPlaceholder: true },
     { id: "vendors", label: "Vendor Directory", icon: Store, path: null, isPlaceholder: true },
@@ -373,6 +389,14 @@ export default function Dashboard() {
             </Link>
 
             <Link
+              to="/budget"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all"
+            >
+              <DollarSign className="w-3.5 h-3.5 text-amber-600" />
+              <span>Budget</span>
+            </Link>
+
+            <Link
               to="/checklist"
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-2xs transition-all"
             >
@@ -517,39 +541,67 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* B. Total Wedding Budget */}
+            {/* B. Real Wedding Budget Summary Card */}
             <div className="bg-white rounded-2xl p-5 border border-rose-100 shadow-xs flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
                     <DollarSign className="w-5 h-5" />
                   </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-                    Budget Target
+                  <span
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                      budgetSummary.isOverBudget
+                        ? "bg-rose-50 text-rose-700 border-rose-200"
+                        : "bg-amber-50 text-amber-800 border-amber-200"
+                    }`}
+                  >
+                    {budgetSummary.isOverBudget ? "Over Budget Warning" : "Live Budget"}
                   </span>
                 </div>
                 <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
                   Total Wedding Budget
                 </h3>
                 <div className="text-3xl font-serif font-bold text-slate-900 mb-2">
-                  {wedding ? `$${Number(wedding.totalBudget).toLocaleString()}` : "$0"}
+                  ${(budgetSummary.weddingBudget || wedding?.totalBudget || 0).toLocaleString()}
                 </div>
                 <div className="space-y-1.5 text-xs text-slate-600">
                   <div className="flex justify-between">
-                    <span>Target Budget Allocation</span>
-                    <span className="font-semibold text-slate-800">
-                      {wedding ? `$${Number(wedding.totalBudget).toLocaleString()}` : "Not configured"}
+                    <span>Actual Spending</span>
+                    <span className="font-semibold text-rose-600">
+                      ${budgetSummary.actualTotal.toLocaleString()}
                     </span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div className="bg-gradient-to-r from-rose-500 to-amber-500 h-2 rounded-full w-full" />
+                    <div
+                      className={`h-2 rounded-full transition-all duration-500 ${
+                        budgetSummary.isOverBudget
+                          ? "bg-rose-600"
+                          : budgetSummary.budgetUsagePercentage > 80
+                          ? "bg-amber-500"
+                          : "bg-emerald-500"
+                      }`}
+                      style={{
+                        width: `${Math.min(budgetSummary.budgetUsagePercentage, 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[11px] text-slate-500 pt-0.5">
+                    <span>Usage: {budgetSummary.budgetUsagePercentage}%</span>
+                    <span
+                      className={`font-semibold ${
+                        budgetSummary.remainingBudget < 0 ? "text-rose-600" : "text-emerald-600"
+                      }`}
+                    >
+                      {budgetSummary.remainingBudget < 0 ? "Deficit: -" : "Left: "}$
+                      {Math.abs(budgetSummary.remainingBudget).toLocaleString()}
+                    </span>
                   </div>
                 </div>
               </div>
               <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
-                <span>Saved in MongoDB Atlas</span>
-                <Link to="/wedding-profile" className="text-rose-600 hover:underline">
-                  Edit
+                <span>Real MongoDB Expenses</span>
+                <Link to="/budget" className="text-rose-600 hover:underline font-semibold">
+                  Manage Budget &rarr;
                 </Link>
               </div>
             </div>
