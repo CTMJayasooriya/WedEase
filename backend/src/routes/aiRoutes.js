@@ -13,3 +13,4 @@ router.post("/budget-advisor", protect, getBudgetAdvisorReport);
 router.get("/budget-advisor", protect, getBudgetAdvisorReport);
 
 export default router;
+
