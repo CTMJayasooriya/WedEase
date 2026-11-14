@@ -1,5 +1,6 @@
-import Expense from "../models/Expense.js";
+﻿import Expense from "../models/Expense.js";
 import Wedding from "../models/Wedding.js";
+import Booking from "../models/Booking.js";
 
 // @desc    Add a new expense
 // @route   POST /api/expenses
@@ -120,6 +121,31 @@ export const getExpenses = async (req, res) => {
     const isOverBudget = weddingBudget > 0 && actualTotal > weddingBudget;
     const overBudgetAmount = isOverBudget ? actualTotal - weddingBudget : 0;
 
+    // Calculate vendor bookings metrics (excluding cancelled bookings)
+    const activeBookings = await Booking.find({
+      user: req.user._id,
+      bookingStatus: { $ne: "Cancelled" },
+    });
+
+    const vendorCommittedTotal = activeBookings.reduce(
+      (sum, b) => sum + (Number(b.totalAmount) || 0),
+      0
+    );
+    const vendorPaidTotal = activeBookings.reduce(
+      (sum, b) => sum + (Number(b.paidAmount) || 0),
+      0
+    );
+    const vendorPendingTotal = activeBookings.reduce(
+      (sum, b) => sum + (Number(b.remainingAmount) || 0),
+      0
+    );
+
+    const combinedActualTotal = actualTotal + vendorPaidTotal;
+    const combinedCommittedTotal = estimatedTotal + vendorCommittedTotal;
+    const combinedRemainingBudget = weddingBudget - combinedActualTotal;
+    const combinedBudgetUsagePercentage =
+      weddingBudget > 0 ? Math.round((combinedActualTotal / weddingBudget) * 100) : 0;
+
     // Category breakdown
     const categoryMap = {};
     allUserExpenses.forEach((item) => {
@@ -153,6 +179,17 @@ export const getExpenses = async (req, res) => {
         isOverBudget,
         overBudgetAmount,
         categoryBreakdown,
+        // Integrated Vendor Metrics
+        vendorSummary: {
+          totalCommitted: vendorCommittedTotal,
+          totalPaid: vendorPaidTotal,
+          totalPending: vendorPendingTotal,
+          activeBookingsCount: activeBookings.length,
+        },
+        combinedActualTotal,
+        combinedCommittedTotal,
+        combinedRemainingBudget,
+        combinedBudgetUsagePercentage,
       },
       expenses,
     });

@@ -5,6 +5,7 @@ import api from "../api/axios";
 import weddingService from "../services/weddingService";
 import taskService from "../services/taskService";
 import budgetService from "../services/budgetService";
+import bookingService from "../services/bookingService";
 import {
   Heart,
   LogOut,
@@ -97,11 +98,23 @@ export default function Dashboard() {
     overBudgetAmount: 0,
   });
 
+  // Real vendor booking statistics state from MongoDB Atlas
+  const [bookingStats, setBookingStats] = useState({
+    totalBookings: 0,
+    confirmedBookings: 0,
+    pendingBookings: 0,
+    completedBookings: 0,
+    cancelledBookings: 0,
+    totalVendorCosts: 0,
+    totalPaid: 0,
+    outstandingPayments: 0,
+  });
+
   // Live Backend health verification
   const [backendHealth, setBackendHealth] = useState(null);
   const [checkingHealth, setCheckingHealth] = useState(false);
 
-  // Fetch wedding profile, task stats, budget summary, and backend health
+  // Fetch wedding profile, task stats, budget summary, vendor bookings, and backend health
   useEffect(() => {
     let isMounted = true;
 
@@ -109,10 +122,11 @@ export default function Dashboard() {
       setLoadingWedding(true);
       setLoadingTasks(true);
       try {
-        const [weddingData, tasksData, budgetData] = await Promise.allSettled([
+        const [weddingData, tasksData, budgetData, bookingsData] = await Promise.allSettled([
           weddingService.getMyWedding(),
           taskService.getTasks(),
           budgetService.getExpenses(),
+          bookingService.getBookings(),
         ]);
 
         if (isMounted) {
@@ -125,6 +139,9 @@ export default function Dashboard() {
           }
           if (budgetData.status === "fulfilled" && budgetData.value?.summary) {
             setBudgetSummary(budgetData.value.summary);
+          }
+          if (bookingsData.status === "fulfilled" && bookingsData.value?.stats) {
+            setBookingStats(bookingsData.value.stats);
           }
         }
       } catch (err) {
@@ -200,9 +217,9 @@ export default function Dashboard() {
     { id: "profile", label: "Wedding Profile", icon: Heart, path: "/wedding-profile", isPlaceholder: false },
     { id: "checklist", label: "Checklist & Tasks", icon: CheckSquare, path: "/checklist", isPlaceholder: false },
     { id: "budget", label: "Budget Planner", icon: DollarSign, path: "/budget", isPlaceholder: false },
+    { id: "vendors", label: "Vendor Directory", icon: Store, path: "/bookings", isPlaceholder: false },
     { id: "guests", label: "Guest List & RSVPs", icon: Users, path: null, isPlaceholder: true },
     { id: "timeline", label: "Day-of Timeline", icon: Clock, path: null, isPlaceholder: true },
-    { id: "vendors", label: "Vendor Directory", icon: Store, path: null, isPlaceholder: true },
     { id: "settings", label: "Account Settings", icon: Settings, path: null, isPlaceholder: true },
   ];
 
@@ -318,56 +335,57 @@ export default function Dashboard() {
         <div className="p-4 border-t border-rose-100 bg-rose-50/30">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-xs">
-              {user?.name ? user.name.charAt(0).toUpperCase() : "W"}
+              {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-900 truncate">
-                {user?.name || "Wedding Planner"}
+              <p className="text-xs font-semibold text-slate-800 truncate">
+                {user?.name || "WedEase Couple"}
               </p>
-              <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+              <p className="text-[11px] text-slate-500 truncate">
+                {user?.email || "user@example.com"}
+              </p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold text-rose-700 bg-rose-100/60 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold text-rose-600 bg-white hover:bg-rose-50 border border-rose-200 transition-colors shadow-2xs cursor-pointer"
           >
-            <LogOut className="w-4 h-4 text-rose-600" />
-            <span>Sign Out of WedEase</span>
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header Bar */}
-        <header className="bg-white/90 backdrop-blur-md border-b border-rose-100/80 sticky top-0 z-30 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        {/* Top Navbar */}
+        <header className="bg-white/80 backdrop-blur-md border-b border-rose-100 sticky top-0 z-30 px-4 sm:px-8 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 border border-slate-200"
-              aria-label="Open sidebar"
+              className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl"
             >
               <Menu className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-lg sm:text-xl font-serif font-bold text-slate-900">
-                {wedding ? `${wedding.brideName} & ${wedding.groomName}'s Wedding` : "Wedding Dashboard"}
+              <h1 className="text-lg sm:text-xl font-serif font-bold text-slate-900 tracking-tight">
+                Wedding Dashboard
               </h1>
-              <p className="hidden sm:block text-xs text-slate-500">
-                WedEase Full-Stack Planning Suite &bull; Master Dashboard
+              <p className="text-xs text-slate-500 hidden sm:block">
+                Overview &amp; Real-Time Planning Analytics
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {/* Live Backend Connection Indicator */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-slate-50 border border-slate-200">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-xs">
               <span
                 className={`w-2 h-2 rounded-full ${
                   checkingHealth
-                    ? "bg-amber-400 animate-spin"
+                    ? "bg-amber-400 animate-pulse"
                     : backendHealth?.online
-                    ? "bg-emerald-500 animate-pulse"
+                    ? "bg-emerald-500"
                     : "bg-slate-400"
                 }`}
               />
@@ -386,6 +404,14 @@ export default function Dashboard() {
             >
               <Edit3 className="w-3.5 h-3.5" />
               <span>{wedding ? "Edit Profile" : "Set Up Profile"}</span>
+            </Link>
+
+            <Link
+              to="/bookings"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all"
+            >
+              <Store className="w-3.5 h-3.5 text-rose-600" />
+              <span>Vendors</span>
             </Link>
 
             <Link
@@ -431,7 +457,7 @@ export default function Dashboard() {
               <h2 className="text-2xl sm:text-4xl font-serif font-bold tracking-tight mb-2">
                 {wedding ? (
                   <span>
-                    {wedding.brideName} & {wedding.groomName}
+                    {wedding.brideName} &amp; {wedding.groomName}
                   </span>
                 ) : (
                   <span>Welcome, {user?.name || "Lovely Couple"}!</span>
@@ -490,33 +516,37 @@ export default function Dashboard() {
 
                 {countdown.hasDate ? (
                   countdown.isToday ? (
-                    <div className="py-2 text-xl font-serif font-bold text-rose-600">
-                      Today is your Wedding Day! 🎉
+                    <div className="py-2 text-rose-600 font-serif font-bold text-xl animate-pulse">
+                      💍 Today is the Big Day! 💍
                     </div>
                   ) : countdown.isPast ? (
-                    <div className="py-2 text-lg font-serif font-semibold text-slate-700">
-                      Celebrated on {new Date(wedding.weddingDate).toLocaleDateString()}
+                    <div className="py-2 text-slate-600 font-medium text-sm">
+                      Happily Married! ✨
                     </div>
                   ) : (
                     <>
                       <div className="text-3xl font-serif font-bold text-slate-900 mb-2">
                         {countdown.days}{" "}
-                        <span className="text-base font-sans font-normal text-slate-500">
-                          Days
-                        </span>
+                        <span className="text-base font-sans font-normal text-slate-500">Days</span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-center py-2 bg-slate-50 rounded-xl border border-slate-100 text-xs">
-                        <div>
-                          <span className="font-bold text-slate-800">{countdown.hours}</span>
-                          <p className="text-[10px] text-slate-400 uppercase">Hours</p>
+                      <div className="grid grid-cols-3 gap-1.5 text-center pt-1">
+                        <div className="bg-rose-50/60 rounded-lg py-1 border border-rose-100">
+                          <span className="block text-xs font-bold text-rose-700 font-mono">
+                            {countdown.hours}
+                          </span>
+                          <span className="text-[9px] text-slate-400 uppercase">Hours</span>
                         </div>
-                        <div>
-                          <span className="font-bold text-slate-800">{countdown.minutes}</span>
-                          <p className="text-[10px] text-slate-400 uppercase">Mins</p>
+                        <div className="bg-rose-50/60 rounded-lg py-1 border border-rose-100">
+                          <span className="block text-xs font-bold text-rose-700 font-mono">
+                            {countdown.minutes}
+                          </span>
+                          <span className="text-[9px] text-slate-400 uppercase">Mins</span>
                         </div>
-                        <div>
-                          <span className="font-bold text-slate-800">{countdown.seconds}</span>
-                          <p className="text-[10px] text-slate-400 uppercase">Secs</p>
+                        <div className="bg-rose-50/60 rounded-lg py-1 border border-rose-100">
+                          <span className="block text-xs font-bold text-rose-700 font-mono">
+                            {countdown.seconds}
+                          </span>
+                          <span className="text-[9px] text-slate-400 uppercase">Secs</span>
                         </div>
                       </div>
                     </>
@@ -686,7 +716,89 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* 3. Detailed Planning Section: Wedding Checklist Preview & Session Security */}
+          {/* 3. NEW: Real Vendor Bookings & Payment Tracking Overview */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                  <Store className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 text-sm">
+                    Vendor Bookings &amp; Payment Status
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Active supplier agreements, advance deposits, and settlement tracking
+                  </p>
+                </div>
+              </div>
+              <Link
+                to="/bookings"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 shadow-2xs transition-all w-fit"
+              >
+                <span>Manage Vendors &amp; Payments</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Booked Vendors
+                </span>
+                <div className="text-xl font-serif font-bold text-slate-900 mt-1">
+                  {bookingStats.totalBookings}
+                </div>
+                <span className="text-[10px] text-slate-500">
+                  {bookingStats.confirmedBookings} confirmed &bull; {bookingStats.pendingBookings} pending
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Committed Vendor Total
+                </span>
+                <div className="text-xl font-serif font-bold text-slate-900 mt-1 font-mono">
+                  ${(bookingStats.totalVendorCosts || 0).toLocaleString()}
+                </div>
+                <span className="text-[10px] text-slate-500">
+                  Agreed contract costs
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Total Vendor Paid
+                </span>
+                <div className="text-xl font-serif font-bold text-emerald-600 mt-1 font-mono">
+                  ${(bookingStats.totalPaid || 0).toLocaleString()}
+                </div>
+                <span className="text-[10px] text-emerald-600 font-semibold">
+                  {bookingStats.totalVendorCosts > 0
+                    ? `${Math.round((bookingStats.totalPaid / bookingStats.totalVendorCosts) * 100)}% settled`
+                    : "No contracts yet"}
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Pending Balance Due
+                </span>
+                <div
+                  className={`text-xl font-serif font-bold mt-1 font-mono ${
+                    bookingStats.outstandingPayments > 0 ? "text-rose-600" : "text-emerald-600"
+                  }`}
+                >
+                  ${(bookingStats.outstandingPayments || 0).toLocaleString()}
+                </div>
+                <span className="text-[10px] text-slate-500">
+                  {bookingStats.outstandingPayments > 0 ? "Requires final installment" : "All settled"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Detailed Planning Section: Wedding Checklist Preview & Session Security */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Real Wedding Checklist Preview */}
             <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
@@ -748,15 +860,14 @@ export default function Dashboard() {
                         <div className="flex items-center gap-3 min-w-0">
                           <button
                             onClick={() => handleToggleTask(t)}
-                            className={`cursor-pointer ${
+                            className={`p-1 rounded-lg transition-colors cursor-pointer ${
                               isCompleted
-                                ? "text-emerald-600"
-                                : "text-slate-300 hover:text-rose-500"
+                                ? "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                : "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
                             }`}
-                            title={isCompleted ? "Mark Pending" : "Mark Completed"}
                           >
                             {isCompleted ? (
-                              <CheckSquare className="w-5 h-5 fill-emerald-100" />
+                              <CheckSquare className="w-5 h-5 fill-emerald-100 text-emerald-600" />
                             ) : (
                               <Square className="w-5 h-5" />
                             )}
@@ -814,7 +925,7 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
                   <ShieldCheck className="w-5 h-5 text-emerald-600" />
                   <h3 className="font-semibold text-slate-900 text-sm">
-                    Auth & Session Security
+                    Auth &amp; Session Security
                   </h3>
                 </div>
 
@@ -859,7 +970,7 @@ export default function Dashboard() {
                   className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span>Log Out of Dashboard</span>
+                  <span>Logout from Session</span>
                 </button>
               </div>
             </div>

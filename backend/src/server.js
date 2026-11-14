@@ -1,4 +1,4 @@
-import express from "express";
+﻿import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
@@ -6,6 +6,8 @@ import authRoutes from "./routes/authRoutes.js";
 import weddingRoutes from "./routes/weddingRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 import expenseRoutes from "./routes/expenseRoutes.js";
+import bookingRoutes from "./routes/bookingRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
 
 dotenv.config();
@@ -20,6 +22,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/weddings", weddingRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/expenses", expenseRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/health", healthRoutes);
 
 // Test API

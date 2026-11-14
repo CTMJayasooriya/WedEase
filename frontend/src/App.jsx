@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import WeddingProfile from "./pages/WeddingProfile";
 import Checklist from "./pages/Checklist";
 import Budget from "./pages/Budget";
+import Bookings from "./pages/Bookings";
 
 export default function App() {
   return (
@@ -65,6 +66,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Budget />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/bookings"
+            element={
+              <ProtectedRoute>
+                <Bookings />
               </ProtectedRoute>
             }
           />

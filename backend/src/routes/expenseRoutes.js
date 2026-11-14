@@ -18,3 +18,4 @@ router.put("/:id", protect, updateExpense);
 router.delete("/:id", protect, deleteExpense);
 
 export default router;
+
