@@ -10,6 +10,7 @@ import Checklist from "./pages/Checklist";
 import Budget from "./pages/Budget";
 import Bookings from "./pages/Bookings";
 import Guests from "./pages/Guests";
+import Timeline from "./pages/Timeline";
 
 export default function App() {
   return (
@@ -83,6 +84,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Guests />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/timeline"
+            element={
+              <ProtectedRoute>
+                <Timeline />
               </ProtectedRoute>
             }
           />

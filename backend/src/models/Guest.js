@@ -70,3 +70,4 @@ const guestSchema = new mongoose.Schema(
 const Guest = mongoose.model("Guest", guestSchema);
 
 export default Guest;
+

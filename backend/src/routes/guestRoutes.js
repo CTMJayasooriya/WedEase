@@ -20,3 +20,4 @@ router.put("/:id", protect, updateGuest);
 router.delete("/:id", protect, deleteGuest);
 
 export default router;
+

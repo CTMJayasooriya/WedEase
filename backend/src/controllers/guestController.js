@@ -326,3 +326,4 @@ export const deleteGuest = async (req, res) => {
     });
   }
 };
+
