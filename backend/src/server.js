@@ -8,6 +8,7 @@ import taskRoutes from "./routes/taskRoutes.js";
 import expenseRoutes from "./routes/expenseRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import guestRoutes from "./routes/guestRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
 
 dotenv.config();
@@ -24,6 +25,7 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/guests", guestRoutes);
 app.use("/api/health", healthRoutes);
 
 // Test API
