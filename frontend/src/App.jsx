@@ -11,6 +11,8 @@ import Budget from "./pages/Budget";
 import Bookings from "./pages/Bookings";
 import Guests from "./pages/Guests";
 import Timeline from "./pages/Timeline";
+import AiAssistant from "./pages/AiAssistant";
+import AiBudgetAdvisor from "./pages/AiBudgetAdvisor";
 
 export default function App() {
   return (
@@ -92,6 +94,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Timeline />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai-assistant"
+            element={
+              <ProtectedRoute>
+                <AiAssistant />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai-budget-advisor"
+            element={
+              <ProtectedRoute>
+                <AiBudgetAdvisor />
               </ProtectedRoute>
             }
           />

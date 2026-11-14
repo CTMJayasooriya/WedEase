@@ -86,3 +86,4 @@ const timelineSchema = new mongoose.Schema(
 const Timeline = mongoose.model("Timeline", timelineSchema);
 
 export default Timeline;
+

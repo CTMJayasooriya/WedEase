@@ -18,3 +18,4 @@ router.put("/:id", protect, updateTimelineEvent);
 router.delete("/:id", protect, deleteTimelineEvent);
 
 export default router;
+

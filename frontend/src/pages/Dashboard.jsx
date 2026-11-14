@@ -275,6 +275,8 @@ export default function Dashboard() {
     { id: "vendors", label: "Vendor Directory", icon: Store, path: "/bookings", isPlaceholder: false },
     { id: "guests", label: "Guest List & RSVPs", icon: Users, path: "/guests", isPlaceholder: false },
     { id: "timeline", label: "Day-of Timeline", icon: Clock, path: "/timeline", isPlaceholder: false },
+    { id: "ai-assistant", label: "AI Wedding Assistant", icon: Sparkles, path: "/ai-assistant", isPlaceholder: false },
+    { id: "ai-budget", label: "AI Budget Advisor", icon: DollarSign, path: "/ai-budget-advisor", isPlaceholder: false },
     { id: "settings", label: "Account Settings", icon: Settings, path: null, isPlaceholder: true },
   ];
 
@@ -459,6 +461,22 @@ export default function Dashboard() {
             >
               <Edit3 className="w-3.5 h-3.5" />
               <span>{wedding ? "Edit Profile" : "Set Up Profile"}</span>
+            </Link>
+
+            <Link
+              to="/ai-assistant"
+              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-rose-600" />
+              <span>AI Assistant</span>
+            </Link>
+
+            <Link
+              to="/ai-budget-advisor"
+              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all"
+            >
+              <DollarSign className="w-3.5 h-3.5 text-amber-600" />
+              <span>AI Advisor</span>
             </Link>
 
             <Link
@@ -1014,7 +1032,84 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* 5. Detailed Planning Section: Wedding Checklist Preview & Session Security */}
+          {/* 5. WedEase AI Wedding Assistant & Budget Intelligence Hub */}
+          <div className="bg-linear-to-r from-rose-50 via-white to-amber-50 rounded-2xl p-6 border border-rose-200/80 shadow-xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-rose-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-linear-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center shadow-xs">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-slate-900 text-base flex items-center gap-2">
+                    AI Wedding Assistant &amp; Financial Advisor
+                    <span className="text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                      Live AI Modules
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Get personalized guidance on checklists, vendor negotiation, day-of scheduling, and budget optimization.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/ai-assistant"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 shadow-2xs transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Ask AI Assistant</span>
+                </Link>
+                <Link
+                  to="/ai-budget-advisor"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white hover:bg-amber-700 shadow-2xs transition-all"
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span>AI Budget Advisor</span>
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+              <Link
+                to="/ai-assistant"
+                className="p-4 rounded-xl bg-white border border-rose-100 hover:border-rose-300 hover:shadow-xs transition-all flex items-start gap-3 group"
+              >
+                <div className="p-2 rounded-lg bg-rose-50 text-rose-600 group-hover:bg-rose-100 transition">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-slate-900 group-hover:text-rose-600 transition flex items-center justify-between">
+                    <span>Wedding Planning Concierge</span>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-rose-600 group-hover:translate-x-0.5 transition" />
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Ask questions like "What should I prepare first?" or "Review my urgent pending tasks".
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                to="/ai-budget-advisor"
+                className="p-4 rounded-xl bg-white border border-amber-100 hover:border-amber-300 hover:shadow-xs transition-all flex items-start gap-3 group"
+              >
+                <div className="p-2 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-100 transition">
+                  <DollarSign className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-slate-900 group-hover:text-amber-700 transition flex items-center justify-between">
+                    <span>Smart Budget &amp; Expense Advisor</span>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-0.5 transition" />
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Assess spending health, spot over-budget categories, and view cost-saving allocation strategies.
+                  </p>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* 6. Detailed Planning Section: Wedding Checklist Preview & Session Security */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Real Wedding Checklist Preview */}
             <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
