@@ -5,6 +5,7 @@ import PublicRoute from "./components/PublicRoute";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import WeddingProfile from "./pages/WeddingProfile";
 
 export default function App() {
   return (
@@ -32,12 +33,20 @@ export default function App() {
             }
           />
 
-          {/* Protected route (requires valid JWT token) */}
+          {/* Protected routes (require valid JWT token) */}
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/wedding-profile"
+            element={
+              <ProtectedRoute>
+                <WeddingProfile />
               </ProtectedRoute>
             }
           />
